@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>拒绝加班！昭和职场大逃杀</title>
+    <style>
+        body { margin: 0; background: #222; text-align: center; color: white; font-family: 'Arial', sans-serif; overflow: hidden; touch-action: none; }
+        canvas { background: #fdf5e6; display: block; margin: 0 auto; border: 4px solid #8b4513; }
+        .ui { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); pointer-events: none; width: 100%; }
+        .btn-pay { color: white; border: none; padding: 12px 20px; border-radius: 25px; font-weight: bold; cursor: pointer; margin-top: 10px; width: 240px; font-size: 16px; }
+        
+        .btn-disabled { background: #555 !important; cursor: not-allowed; color: #aaa; }
+        .btn-ads { background: #f1c40f; color: #333; }
+        .btn-share { background: #4169e1; } /* 分享按钮蓝色 */
+
+        .score-popup {
+            position: absolute;
+            left: 50%;
+            top: 40%;
+            transform: translate(-50%, -50%);
+            font-size: 40px;
+            font-weight: bold;
+            pointer-events: none;
+            animation: scoreJump 0.8s ease-out forwards;
+            z-index: 10;
+            text-shadow: 2px 2px 0px #fff;
+        }
+        @keyframes scoreJump {
+            0% { transform: translate(-50%, 0); opacity: 1; }
+            100% { transform: translate(-50%, -60px); opacity: 0; }
+        }
+
+        #gameOver { 
+            display:none; position:absolute; top:50%; left:50%; 
+            transform:translate(-50%,-50%); background:rgba(0,0,0,0.9); 
+            padding:30px 20px; border-radius:20px; width:85%; box-sizing: border-box; z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <div class="ui">
+        <h2 style="color: #333; margin: 5px 0;">Score: <span id="score">0</span></h2>
+        <div id="msg" style="color: #8b4513; font-weight: bold;">[左右滑动] 躲避加班，接住工资！</div>
+    </div>
+
+    <div id="popupContainer"></div>
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="gameOver">
+        <h1 style="color: #ff4500; margin-top: 0;">GAME OVER</h1>
+        <p>你被迫加班到了深夜...</p>
+        <p style="font-size: 20px;">最终得分: <span id="finalScore">0</span></p>
+        
+        <button id="restartBtn" onclick="location.reload()" class="btn-pay btn-disabled" disabled>重新入职 (180s)</button>
+        <br>
+        <button onclick="watchAds()" class="btn-pay btn-ads">📺 观看视频立即复活</button>
+        <br>
+        <button onclick="shareToRevive()" class="btn-pay btn-share">📤 分享好友立即复活</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('score');
+        const gameOverEl = document.getElementById('gameOver');
+        const finalScoreEl = document.getElementById('finalScore');
+        const restartBtn = document.getElementById('restartBtn');
+        const popupContainer = document.getElementById('popupContainer');
+
+        canvas.width = Math.min(window.innerWidth, 450);
+        canvas.height = window.innerHeight;
+
+        let score = 0;
+        let gameActive = true;
+        let rewardedVideoAd = null; // 广告实例
+        const player = { x: canvas.width / 2 - 30, y: canvas.height - 100, w: 60, h: 60 };
+        const items = [];
+        const types = [
+            { text: "残業", color: "#ff0000", score: -1, die: true }, 
+            { text: "始末書", color: "#ff4500", score: -1, die: true }, 
+            { text: "給料", color: "#ffd700", score: 10, die: false }, 
+            { text: "定時", color: "#32cd32", score: 5, die: false }  
+        ];
+
+        function showScorePopup(val, color) {
+            const div = document.createElement('div');
+            div.className = 'score-popup';
+            div.innerText = '+' + val;
+            div.style.color = color;
+            popupContainer.appendChild(div);
+            setTimeout(() => div.remove(), 800);
+        }
+
+        // 复活逻辑代码块
+        function doRevive() {
+            gameActive = true;
+            gameOverEl.style.display = "none";
+            items.length = 0; 
+            update();
+            spawnItem();
+        }
+
+        // --- TikTok 广告接入 ---
+        function watchAds() {
+            if (typeof tt !== 'undefined') {
+                if (!rewardedVideoAd) {
+                    rewardedVideoAd = tt.createRewardedVideoAd({
+                        adUnitId: '你的TikTok广告位ID' // 在TikTok开发者后台申请
+                    });
+                    rewardedVideoAd.onClose((res) => {
+                        if (res && res.isEnded) { doRevive(); } 
+                        else { alert("Watch the full video to revive!"); }
+                    });
+                }
+                rewardedVideoAd.show().catch(() => {
+                    rewardedVideoAd.load().then(() => rewardedVideoAd.show());
+                });
+            } else {
+                // 模拟环境
+                alert("Loading TikTok Ad...");
+                setTimeout(() => { alert("Ad finished! Revived!"); doRevive(); }, 1500);
+            }
+        }
+
+        // --- TikTok 分享复活 ---
+        function shareToRevive() {
+            if (typeof tt !== 'undefined' && tt.shareAppMessage) {
+                tt.shareAppMessage({
+                    title: 'Help me! I am stuck at work!',
+                    desc: 'Dodge overtime and catch the salary!',
+                    success() { doRevive(); }
+                });
+            } else {
+                alert("Simulating share...");
+                setTimeout(() => { doRevive(); }, 1000);
+            }
+        }
+
+        const moveHandler = (e) => {
+            if(!gameActive) return;
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const rect = canvas.getBoundingClientRect();
+            player.x = (clientX - rect.left) - player.w/2;
+            if(player.x < 0) player.x = 0;
+            if(player.x > canvas.width - player.w) player.x = canvas.width - player.w;
+        };
+        canvas.addEventListener('touchmove', (e) => { moveHandler(e); e.preventDefault(); }, {passive: false});
+        canvas.addEventListener('mousemove', moveHandler);
+
+        function spawnItem() {
+            if (!gameActive) return;
+            const type = types[Math.floor(Math.random() * types.length)];
+            items.push({ x: Math.random() * (canvas.width - 60), y: -50, ...type });
+            setTimeout(spawnItem, Math.max(250, 900 - score * 2)); 
+        }
+
+        function update() {
+            if (!gameActive) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 画玩家
+            ctx.fillStyle = "#000080";
+            ctx.fillRect(player.x, player.y, player.w, player.h);
+            ctx.fillStyle = "white";
+            ctx.font = "bold 16px Arial";
+            ctx.textAlign = "center";
+            ctx.fillText("STAFF", player.x + player.w/2, player.y + player.h/2 + 6);
+
+            for (let i = items.length - 1; i >= 0; i--) {
+                const it = items[i];
+                const speed = 5 + (score / 25); 
+                it.y += speed; 
+                ctx.fillStyle = it.color;
+                ctx.font = "bold 24px Arial";
+                ctx.textAlign = "left";
+                ctx.fillText(it.text, it.x, it.y);
+
+                // 碰撞检测修复
+                if (it.y > player.y && it.y - 20 < player.y + player.h &&
+                    it.x + 50 > player.x && it.x < player.x + player.w) {
+                    if (it.die) { endGame(); return; } 
+                    else {
+                        score += it.score;
+                        scoreEl.innerText = score;
+                        showScorePopup(it.score, it.color);
+                        items.splice(i, 1);
+                    }
+                }
+                if (it.y > canvas.height) items.splice(i, 1);
+            }
+            requestAnimationFrame(update);
+        }
+
+        function endGame() {
+            gameActive = false;
+            gameOverEl.style.display = "block";
+            finalScoreEl.innerText = score;
+            let remain = 180;
+            const timer = setInterval(() => {
+                remain--;
+                restartBtn.innerText = `Restart (${remain}s)`;
+                if (remain <= 0) {
+                    clearInterval(timer);
+                    restartBtn.innerText = "Restart";
+                    restartBtn.disabled = false;
+                    restartBtn.classList.remove('btn-disabled');
+                }
+            }, 1000);
+        }
+
+        spawnItem();
+        update();
+    </script>
+</body>
+</html>
