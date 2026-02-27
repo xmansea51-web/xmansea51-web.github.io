@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>拒绝加班！昭和职场大作战</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body { 
+            margin: 0; 
+            background: #1a2a1f;
+            text-align: center; 
+            font-family: 'Arial', 'Helvetica', sans-serif;
+            overflow: hidden; 
+            touch-action: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .game-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 480px;
+            margin: 0 auto;
+            box-shadow: 0 20px 30px rgba(0,0,0,0.6);
+            border-radius: 28px 28px 12px 12px;
+            overflow: hidden;
+            border: 4px solid #b87c4b;
+        }
+        canvas { 
+            background: #f0e0c0;
+            display: block; 
+            width: 100%;
+            height: auto;
+            cursor: none;
+        }
+        .ui { 
+            position: absolute; 
+            top: 8px; 
+            left: 0; 
+            right: 0;
+            padding: 0 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: none; 
+            z-index: 20;
+            text-shadow: 2px 2px 0 #e0c8a0;
+        }
+        .score-box {
+            background: rgba(0,0,0,0.6);
+            color: #ffd966;
+            padding: 6px 16px;
+            border-radius: 40px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            border: 2px solid #d4a373;
+            backdrop-filter: blur(2px);
+            pointer-events: auto;
+        }
+        .hint-box {
+            background: #8b5a2b;
+            color: #f5e7d9;
+            padding: 6px 12px;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            border: 1px solid #f0c27b;
+            opacity: 0.9;
+        }
+        #homeScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(145deg, #c9a87c 0%, #a5714c 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+            border: 6px solid #6b4226;
+            box-sizing: border-box;
+            padding: 20px;
+            box-shadow: inset 0 0 20px #4b2e1a;
+        }
+        .title-box {
+            background: #e6d5b8;
+            padding: 30px 20px;
+            border-radius: 120px 120px 40px 40px;
+            border: 6px solid #8b5a2b;
+            margin-bottom: 40px;
+            transform: rotate(-2deg);
+            box-shadow: 0 10px 0 #4f3a1e;
+        }
+        .main-title {
+            font-size: 2.8rem;
+            font-weight: 900;
+            color: #2d1f0c;
+            text-shadow: 4px 4px 0 #e3b37c, 6px 6px 0 #6b3f1f;
+            letter-spacing: 6px;
+            line-height: 1.2;
+            margin: 0;
+        }
+        .sub-title {
+            font-size: 1.2rem;
+            color: #392b18;
+            background: #efdbaf;
+            display: inline-block;
+            padding: 8px 24px;
+            border-radius: 40px;
+            margin-top: -15px;
+            border: 2px solid #b47d56;
+            font-weight: bold;
+        }
+        .start-btn {
+            background: #e63946;
+            border: none;
+            color: #f9e9d2;
+            font-size: 3rem;
+            font-weight: bold;
+            padding: 20px 60px;
+            border-radius: 60px;
+            box-shadow: 0 12px 0 #921a2a, 0 8px 20px black;
+            border: 3px solid #ffba7a;
+            transform: rotate(1deg);
+            transition: 0.05s linear;
+            margin: 30px 0 20px;
+            cursor: pointer;
+            line-height: 1;
+        }
+        .start-btn:active {
+            transform: translateY(8px) rotate(1deg);
+            box-shadow: 0 4px 0 #921a2a, 0 8px 15px black;
+        }
+        .period-detail {
+            font-size: 1.3rem;
+            color: #30200c;
+            background: #dbbc87;
+            padding: 10px 25px;
+            border-radius: 40px;
+            border: 2px solid #6b4226;
+            margin-top: 20px;
+        }
+        #gameOver { 
+            display: none; 
+            position: absolute; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            background: rgba(30, 20, 5, 0.95); 
+            padding: 30px 16px; 
+            border-radius: 40px; 
+            width: 90%; 
+            max-width: 360px;
+            border: 5px solid #b87c4b;
+            backdrop-filter: blur(5px);
+            z-index: 100; 
+            box-shadow: 0 15px 30px black;
+        }
+        #gameOver h1 {
+            color: #ffb347;
+            font-size: 2.5rem;
+            margin: 0 0 10px;
+            text-shadow: 3px 3px 0 #6b2e0e;
+        }
+        #gameOver p {
+            color: #f5d7b3;
+            font-size: 1.3rem;
+            margin: 10px 0;
+        }
+        .btn-pay { 
+            color: white; 
+            border: none; 
+            padding: 14px 10px; 
+            border-radius: 50px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            margin: 8px 0; 
+            width: 90%; 
+            font-size: 1.2rem; 
+            border: 2px solid #ffdb9f;
+            box-shadow: 0 5px 0 #5a3e1f;
+            transition: 0.05s linear;
+        }
+        .btn-pay:active {
+            transform: translateY(4px);
+            box-shadow: 0 1px 0 #5a3e1f;
+        }
+        .btn-disabled { background: #555 !important; cursor: not-allowed; color: #aaa; border-color: #333; box-shadow: none; pointer-events: none; transform: none; }
+        .btn-ads { background: #f1c40f; color: #2c1810; }
+        .btn-share { background: #4169e1; color: white; }
+        .score-popup {
+            position: absolute;
+            left: 50%;
+            top: 40%;
+            transform: translate(-50%, -50%);
+            font-size: 40px;
+            font-weight: bold;
+            pointer-events: none;
+            animation: scoreJump 0.8s ease-out forwards;
+            z-index: 30;
+            text-shadow: 3px 3px 0 #fff9e0, 5px 5px 0 #a55233;
+        }
+        @keyframes scoreJump {
+            0% { transform: translate(-50%, 0); opacity: 1; }
+            100% { transform: translate(-50%, -80px); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+<div class="game-wrapper">
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="homeScreen">
+        <div class="title-box">
+            <h1 class="main-title">拒绝加班！</h1>
+            <div class="sub-title">昭和职场大作战</div>
+        </div>
+        <button class="start-btn" id="startGameBtn">開始</button>
+        <div class="period-detail">⚡ 昭和40年・怒りの残業回避 ⚡</div>
+    </div>
+
+    <div class="ui" id="inGameUI" style="display: none;">
+        <div class="score-box">💰 <span id="score">0</span></div>
+        <div class="hint-box" id="msg">👆 滑动躲避 残業・始末書</div>
+    </div>
+
+    <div id="popupContainer"></div>
+
+    <div id="gameOver">
+        <h1>GAME OVER</h1>
+        <p>你被迫加班到了深夜...</p>
+        <p style="font-size: 24px;">最终得分: <span id="finalScore">0</span></p>
+        <button id="restartBtn" class="btn-pay btn-disabled" disabled>重新入职 (180s)</button>
+        <br>
+        <button onclick="window.watchAdsFn()" class="btn-pay btn-ads">📺 观看视频立即复活</button>
+        <br>
+        <button onclick="window.shareToReviveFn()" class="btn-pay btn-share">📤 分享好友立即复活</button>
+    </div>
+</div>
+
+<script>
+    (function(){
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('score');
+        const gameOverEl = document.getElementById('gameOver');
+        const finalScoreEl = document.getElementById('finalScore');
+        const restartBtn = document.getElementById('restartBtn');
+        const popupContainer = document.getElementById('popupContainer');
+        const homeScreen = document.getElementById('homeScreen');
+        const inGameUI = document.getElementById('inGameUI');
+        const startBtn = document.getElementById('startGameBtn');
+
+        // 画布尺寸
+        function resizeCanvas() {
+            const maxW = 480;
+            const w = Math.min(window.innerWidth - 20, maxW);
+            const h = Math.floor(w * 16 / 9);
+            canvas.width = w;
+            canvas.height = h;
+            
+            // 重新设置玩家位置到底部
+            if (player) {
+                player.y = canvas.height - 80; // 距离底部80px
+                player.w = 60;
+                player.h = 60;
+                player.x = canvas.width / 2 - player.w / 2;
+            }
+        }
+        
+        let score = 0;
+        let gameActive = false;
+        let rewardedVideoAd = null;
+        
+        // 玩家初始位置 - 确保在底部
+        const player = { 
+            x: 0, 
+            y: 0,  // 将在resize中设置
+            w: 60, 
+            h: 60 
+        };
+        
+        const items = [];
+        const types = [
+            { text: "残業", color: "#ff0000", score: -1, die: true }, 
+            { text: "始末書", color: "#ff4500", score: -1, die: true }, 
+            { text: "給料", color: "#ffd700", score: 10, die: false }, 
+            { text: "定時", color: "#32cd32", score: 5, die: false }  
+        ];
+
+        // 先resize一次设置好y坐标
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        function resetGameState() {
+            score = 0;
+            scoreEl.innerText = '0';
+            items.length = 0;
+            player.x = canvas.width / 2 - player.w / 2;
+            player.y = canvas.height - 80; // 明确设置到底部
+            gameActive = true;
+            gameOverEl.style.display = "none";
+        }
+
+        function startNewGame() {
+            homeScreen.style.display = 'none';
+            inGameUI.style.display = 'flex';
+            resetGameState();
+            if (window._spawnTimer) clearTimeout(window._spawnTimer);
+            spawnItemLoop();
+            if (!window._updateRunning) {
+                window._updateRunning = true;
+                updateGame();
+            }
+        }
+
+        function spawnItemLoop() {
+            if (!gameActive) {
+                window._spawnTimer = setTimeout(spawnItemLoop, 500);
+                return;
+            }
+            const type = types[Math.floor(Math.random() * types.length)];
+            items.push({ 
+                x: Math.random() * (canvas.width - 60), 
+                y: -40, 
+                text: type.text,
+                color: type.color,
+                score: type.score,
+                die: type.die
+            });
+            const interval = Math.max(250, 700 - score * 3);
+            window._spawnTimer = setTimeout(spawnItemLoop, interval);
+        }
+
+        // 移动控制
+        const moveHandler = (e) => {
+            if(!gameActive) return;
+            e.preventDefault();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const rect = canvas.getBoundingClientRect();
+            let canvasX = clientX - rect.left;
+            player.x = canvasX - player.w/2;
+            if(player.x < 0) player.x = 0;
+            if(player.x > canvas.width - player.w) player.x = canvas.width - player.w;
+        };
+
+        canvas.addEventListener('touchmove', moveHandler, { passive: false });
+        canvas.addEventListener('mousemove', moveHandler);
+        canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+        function showScorePopup(val, color) {
+            const div = document.createElement('div');
+            div.className = 'score-popup';
+            div.innerText = (val > 0 ? '+' : '') + val;
+            div.style.color = color;
+            popupContainer.appendChild(div);
+            setTimeout(() => div.remove(), 800);
+        }
+
+        function doRevive() {
+            if (!gameActive) {
+                gameActive = true;
+                gameOverEl.style.display = "none";
+                items.length = 0;
+                // 确保玩家在底部
+                player.y = canvas.height - 80;
+            }
+        }
+
+        window.watchAdsFn = function() {
+            if (!gameActive) {
+                if (typeof tt !== 'undefined') {
+                    if (!rewardedVideoAd) {
+                        rewardedVideoAd = tt.createRewardedVideoAd({ adUnitId: 'demoId' });
+                        rewardedVideoAd.onClose((res) => { if (res && res.isEnded) doRevive(); else alert("请完整观看视频～"); });
+                    }
+                    rewardedVideoAd.show().catch(() => rewardedVideoAd.load().then(() => rewardedVideoAd.show()));
+                } else {
+                    alert("[模拟] 观看广告中...");
+                    setTimeout(() => { alert("广告结束！复活！"); doRevive(); }, 1200);
+                }
+            }
+        };
+
+        window.shareToReviveFn = function() {
+            if (!gameActive) {
+                if (typeof tt !== 'undefined' && tt.shareAppMessage) {
+                    tt.shareAppMessage({ title: '昭和职场大逃杀', success() { doRevive(); } });
+                } else {
+                    alert("[模拟] 分享成功！立即复活");
+                    setTimeout(() => doRevive(), 500);
+                }
+            }
+        };
+
+        function endGame() {
+            if (!gameActive) return;
+            gameActive = false;
+            gameOverEl.style.display = "block";
+            finalScoreEl.innerText = score;
+
+            restartBtn.disabled = true;
+            restartBtn.classList.add('btn-disabled');
+            let remain = 180;
+            const timer = setInterval(() => {
+                remain--;
+                restartBtn.innerText = `重新入职 (${remain}s)`;
+                if (remain <= 0) {
+                    clearInterval(timer);
+                    restartBtn.innerText = "重新入职";
+                    restartBtn.disabled = false;
+                    restartBtn.classList.remove('btn-disabled');
+                }
+            }, 1000);
+        }
+
+        function updateGame() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 画网格背景
+            ctx.strokeStyle = "#c0a070";
+            ctx.lineWidth = 1;
+            for (let i = 0; i < canvas.width; i += 40) {
+                ctx.beginPath();
+                ctx.strokeStyle = "#b08f60";
+                ctx.lineWidth = 0.5;
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i, canvas.height);
+                ctx.stroke();
+            }
+
+            // 确保玩家在底部 (防止意外修改)
+            if (gameActive) {
+                player.y = canvas.height - 80;
+            } else {
+                player.y = canvas.height - 80; // 非活跃时也保持在底部
+            }
+
+            // 画玩家 (社畜) - 始终在底部
+            ctx.fillStyle = "#2c3e50";
+            ctx.shadowColor = '#4a3f2b';
+            ctx.shadowBlur = 10;
+            ctx.fillRect(player.x, player.y, player.w, player.h);
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = "#ecf0f1";
+            ctx.font = "bold 18px 'Arial'";
+            ctx.textAlign = "center";
+            ctx.fillText("社畜", player.x + player.w/2, player.y + player.h/2 + 6);
+
+            // 绘制下落物品
+            for (let i = items.length - 1; i >= 0; i--) {
+                const it = items[i];
+                const speed = 4 + Math.floor(score / 15);
+                it.y += speed;
+
+                ctx.font = "bold 28px 'Arial'";
+                ctx.fillStyle = it.color;
+                ctx.fillText(it.text, it.x, it.y);
+
+                // 碰撞检测 - 使用更精确的矩形碰撞
+                if (gameActive && 
+                    it.y > player.y &&              // 物品底部超过玩家顶部
+                    it.y - 30 < player.y + player.h && // 物品顶部在玩家底部之上
+                    it.x + 50 > player.x &&         // 物品右边界超过玩家左边界
+                    it.x < player.x + player.w) {   // 物品左边界小于玩家右边界
+                    
+                    if (it.die) {
+                        endGame();
+                        return;
+                    } else {
+                        score += it.score;
+                        scoreEl.innerText = score;
+                        showScorePopup(it.score, it.color);
+                        items.splice(i, 1);
+                    }
+                }
+                if (it.y > canvas.height + 40) items.splice(i, 1);
+            }
+
+            requestAnimationFrame(updateGame);
+        }
+
+        // 初始状态
+        gameActive = false;
+        inGameUI.style.display = 'none';
+        gameOverEl.style.display = 'none';
+        
+        // 画首页静态画面
+        function drawHomePassive() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "#d4b48c";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.font = "bold 32px Arial";
+            ctx.fillStyle = "#5e3a1c";
+            ctx.textAlign = "center";
+            ctx.fillText("昭和职场", canvas.width/2, canvas.height/2-20);
+            ctx.font = "24px Arial";
+            ctx.fillText("点击「開始」", canvas.width/2, canvas.height/2+30);
+            
+            // 画个底部社畜示意
+            ctx.fillStyle = "#2c3e50";
+            ctx.fillRect(canvas.width/2-30, canvas.height-80, 60, 60);
+            ctx.fillStyle = "#ecf0f1";
+            ctx.font = "bold 16px Arial";
+            ctx.fillText("社畜", canvas.width/2, canvas.height-40);
+        }
+        drawHomePassive();
+
+        startBtn.addEventListener('click', () => {
+            startNewGame();
+        });
+
+        restartBtn.addEventListener('click', function() {
+            if (!restartBtn.disabled) {
+                resetGameState();
+                gameOverEl.style.display = "none";
+                items.length = 0;
+                score = 0;
+                scoreEl.innerText = '0';
+            }
+        });
+
+        window.doRevive = doRevive;
+
+        // 初始化玩家到底部
+        player.y = canvas.height - 80;
+        player.x = canvas.width / 2 - player.w / 2;
+    })();
+</script>
+</body>
+</html>
