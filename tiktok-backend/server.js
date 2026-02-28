@@ -19,7 +19,7 @@ app.use(express.json());
 const TIKTOK_CONFIG = {
     client_key: process.env.TIKTOK_CLIENT_KEY,
     client_secret: process.env.TIKTOK_CLIENT_SECRET,
-    redirect_uri: 'https://xmansea51-web.github.io/index.html'
+    redirect_uri: 'https://xmansea51-web.github.io/callback/'
 };
 
 // ===== 健康检查（Render 必备） =====
