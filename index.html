@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>拒绝加班！昭和职场大作战 · TikTok版</title>
+<style>
+body{margin:0;background:#2d3436;display:flex;justify-content:center;align-items:center;height:100vh;font-family:Microsoft YaHei}
+.game-container{width:100%;max-width:450px;height:95vh;background:#000;border:6px solid #4a3020;border-radius:20px;overflow:hidden;position:relative}
+canvas{width:100%;height:100%;background:#f5e6ca}
+.overlay{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#f5e6ca}
+.btn{width:80%;padding:15px;margin:10px;border:none;border-radius:50px;font-size:1.2rem;font-weight:bold;cursor:pointer}
+.btn-tiktok{background:#000;color:#fff}
+</style>
+</head>
+
+<body>
+<div class="game-container">
+<canvas id="gameCanvas"></canvas>
+
+<div id="homeScreen" class="overlay">
+<h2>拒绝加班！昭和职场大作战</h2>
+<button class="btn btn-tiktok" id="loginBtn">🎵 Login with TikTok</button>
+<button class="btn" id="startBtn" disabled>开始游戏</button>
+<p id="loginStatus">请先登录 TikTok</p>
+</div>
+</div>
+
+<script>
+const TIKTOK_CLIENT_KEY="awrjc36v2o7a2owa";
+const REDIRECT_URI="https://xmansea51-web.github.io/index.html";
+
+const game={
+isLoggedIn:false,
+
+init(){
+document.getElementById("loginBtn").onclick=()=>this.login();
+document.getElementById("startBtn").onclick=()=>this.start();
+this.handleCallback();
+},
+
+// ===== 审核用 Sandbox 登录 =====
+login(){
+window.location.href=
+"https://xmansea51-web.github.io/index.html?code=demo123&state=game_login";
+},
+
+// ===== 审核通过后改成这个 =====
+realLogin(){
+const authUrl=
+"https://www.tiktok.com/v2/auth/authorize/"+
+"?client_key="+TIKTOK_CLIENT_KEY+
+"&scope=user.info.profile"+
+"&response_type=code"+
+"&redirect_uri="+encodeURIComponent(REDIRECT_URI)+
+"&state=game_login";
+window.location.href=authUrl;
+},
+
+handleCallback(){
+const params=new URLSearchParams(window.location.search);
+const code=params.get("code");
+const state=params.get("state");
+
+if(code&&state==="game_login"){
+this.isLoggedIn=true;
+document.getElementById("loginStatus").innerText="登录成功";
+document.getElementById("startBtn").disabled=false;
+window.history.replaceState({},document.title,window.location.pathname);
+}
+},
+
+start(){
+alert("游戏开始（审核演示版）");
+}
+};
+
+window.onload=()=>game.init();
+</script>
+</body>
+</html>
