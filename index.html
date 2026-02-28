@@ -2,8 +2,9 @@
 <html lang="zh">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>拒绝加班！昭和职场大作战 · TikTok版</title>
+
 <style>
 body{margin:0;background:#2d3436;display:flex;justify-content:center;align-items:center;height:100vh;font-family:Microsoft YaHei}
 .game-container{width:100%;max-width:450px;height:95vh;background:#000;border:6px solid #4a3020;border-radius:20px;overflow:hidden;position:relative}
@@ -11,41 +12,65 @@ canvas{width:100%;height:100%;background:#f5e6ca}
 .overlay{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#f5e6ca}
 .btn{width:80%;padding:15px;margin:10px;border:none;border-radius:50px;font-size:1.2rem;font-weight:bold;cursor:pointer}
 .btn-tiktok{background:#000;color:#fff}
+.score{position:absolute;top:10px;left:10px;background:#000;color:#fff;padding:5px 10px;border-radius:10px;display:none}
 </style>
 </head>
 
 <body>
 <div class="game-container">
+
+<div class="score" id="scoreBox">工资 ¥<span id="scoreVal">0</span></div>
+
 <canvas id="gameCanvas"></canvas>
 
 <div id="homeScreen" class="overlay">
 <h2>拒绝加班！昭和职场大作战</h2>
 <button class="btn btn-tiktok" id="loginBtn">🎵 Login with TikTok</button>
-<button class="btn" id="startBtn" disabled>开始游戏</button>
+<button class="btn" id="startBtn" disabled>正式入职</button>
 <p id="loginStatus">请先登录 TikTok</p>
 </div>
+
 </div>
 
 <script>
 const TIKTOK_CLIENT_KEY="awrjc36v2o7a2owa";
 const REDIRECT_URI="https://xmansea51-web.github.io/index.html";
 
+const canvas=document.getElementById("gameCanvas");
+const ctx=canvas.getContext("2d");
+
 const game={
+active:false,
+score:0,
+playerX:200,
+targetX:200,
+items:[],
 isLoggedIn:false,
 
 init(){
+canvas.width=canvas.parentElement.clientWidth;
+canvas.height=canvas.parentElement.clientHeight;
+
 document.getElementById("loginBtn").onclick=()=>this.login();
 document.getElementById("startBtn").onclick=()=>this.start();
+
+canvas.addEventListener("mousemove",(e)=>{
+if(!this.active)return;
+const rect=canvas.getBoundingClientRect();
+this.targetX=e.clientX-rect.left;
+});
+
 this.handleCallback();
+this.render();
 },
 
-// ===== 审核用 Sandbox 登录 =====
+// ===== 审核用登录（Sandbox）=====
 login(){
 window.location.href=
 "https://xmansea51-web.github.io/index.html?code=demo123&state=game_login";
 },
 
-// ===== 审核通过后改成这个 =====
+// ===== 审核通过后改用真实登录 =====
 realLogin(){
 const authUrl=
 "https://www.tiktok.com/v2/auth/authorize/"+
@@ -71,11 +96,65 @@ window.history.replaceState({},document.title,window.location.pathname);
 },
 
 start(){
-alert("游戏开始（审核演示版）");
+if(!this.isLoggedIn)return;
+document.getElementById("homeScreen").style.display="none";
+document.getElementById("scoreBox").style.display="block";
+this.score=0;
+this.items=[];
+this.active=true;
+},
+
+update(){
+if(!this.active)return;
+
+this.playerX+=(this.targetX-this.playerX)*0.2;
+
+if(Math.random()<0.03){
+this.items.push({
+x:Math.random()*canvas.width,
+y:-20,
+speed:3+this.score/500
+});
+}
+
+for(let i=this.items.length-1;i>=0;i--){
+const it=this.items[i];
+it.y+=it.speed;
+
+if(Math.abs(it.x-this.playerX)<30 && it.y>canvas.height-80){
+this.score+=100;
+document.getElementById("scoreVal").innerText=this.score;
+this.items.splice(i,1);
+}else if(it.y>canvas.height){
+this.items.splice(i,1);
+}
+}
+},
+
+draw(){
+ctx.fillStyle="#f5e6ca";
+ctx.fillRect(0,0,canvas.width,canvas.height);
+
+ctx.fillStyle="#000";
+ctx.fillRect(this.playerX-20,canvas.height-60,40,40);
+
+ctx.fillStyle="#2ecc71";
+this.items.forEach(it=>{
+ctx.beginPath();
+ctx.arc(it.x,it.y,10,0,Math.PI*2);
+ctx.fill();
+});
+},
+
+render(){
+this.update();
+this.draw();
+requestAnimationFrame(()=>this.render());
 }
 };
 
 window.onload=()=>game.init();
 </script>
+
 </body>
 </html>
