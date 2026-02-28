@@ -2,6 +2,7 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
+    <meta name="tiktok-developers-site-verification" content="6EmLywFFimRVyrQF1CjOP1WZ80ZBiU6I">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>拒绝加班！昭和职场大逃杀</title>
     <style>
@@ -320,7 +321,7 @@ const game = {
         }
     },
     
-    // ✅ 修改1: TikTok回调处理 - 调用真实后端
+    // TikTok回调处理 - 调用真实后端
     handleTikTokCallback() {
         const params = new URLSearchParams(window.location.search);
         const code = params.get("code");
@@ -334,7 +335,7 @@ const game = {
         window.history.replaceState({}, document.title, window.location.pathname);
     },
 
-    // ✅ 修改2: 调用 Render 后端
+    // 调用 Render 后端
     async exchangeTokenWithBackend(code) {
         try {
             const response = await fetch(
