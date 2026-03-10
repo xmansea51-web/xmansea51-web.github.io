@@ -5,6 +5,10 @@
     <meta name="tiktok-developers-site-verification" content="I9BYueDa26Qb1OSa20WDtnwSZVppkKR1">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>拒绝加班！昭和职场大逃杀</title>
+    <!-- 添加 CSP 策略，允许 TikTok 的脚本加载 -->
+    <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; script-src * 'unsafe-inline' 'unsafe-eval' data: blob:; style-src * 'unsafe-inline'; img-src * data:; connect-src *; frame-src *;">
+    <!-- 添加 favicon 配置，避免 404 错误 -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='90' font-size='90'>💼</text></svg>">
     <style>
         :root {
             --bg-color: #2d3436;
@@ -675,24 +679,54 @@ const game = {
 window.onload = () => game.init();
 </script>
 
-<!-- ===== TikTok 登录配置 - 已修复 redirect_uri ===== -->
+<!-- ===== TikTok 登录配置 - 使用弹出窗口 ===== -->
 <script>
 // ★★★ 您的client key ★★★
 const TIKTOK_CLIENT_KEY = "awrjc36v2o7a2owa";
 // ✅ 改为你在TikTok后台配置的Web地址
 const REDIRECT_URI = "https://xmansea51-web.github.io/index.html";
 
-// ===== 点击登录 =====
+// ===== 点击登录 - 使用弹出窗口 =====
 function loginWithTikTok() {
-  const authUrl =
-    "https://www.tiktok.com/v2/auth/authorize/?" +
-    "client_key=" + TIKTOK_CLIENT_KEY +
-    "&scope=user.info.profile" +
-    "&response_type=code" +
-    "&redirect_uri=" + encodeURIComponent(REDIRECT_URI) +
-    "&state=game_login";
+    // 使用弹出窗口方式登录，避免页面跳转导致的CSP问题
+    const width = 600;
+    const height = 700;
+    const left = window.screen.width / 2 - width / 2;
+    const top = window.screen.height / 2 - height / 2;
+    
+    const authUrl =
+        "https://www.tiktok.com/v2/auth/authorize/?" +
+        "client_key=" + TIKTOK_CLIENT_KEY +
+        "&scope=user.info.profile" +
+        "&response_type=code" +
+        "&redirect_uri=" + encodeURIComponent(REDIRECT_URI) +
+        "&state=game_login";
 
-  window.location.href = authUrl;
+    console.log("打开登录窗口:", authUrl);
+    
+    // 打开弹出窗口
+    const popup = window.open(
+        authUrl,
+        'TikTok Login',
+        `width=${width},height=${height},left=${left},top=${top},location=yes,scrollbars=yes,status=yes`
+    );
+    
+    if (!popup) {
+        game.showToast("⚠️ 请允许弹出窗口，或直接点击链接登录");
+        // 如果弹窗被阻止，提供一个备用方案
+        window.location.href = authUrl;
+        return;
+    }
+    
+    // 监听弹出窗口关闭事件
+    const checkPopup = setInterval(() => {
+        if (popup.closed) {
+            clearInterval(checkPopup);
+            console.log("登录窗口已关闭，检查登录状态");
+            // 重新检查 URL 参数，因为用户可能已经授权并返回了
+            game.handleTikTokCallback();
+        }
+    }, 500);
 }
 </script>
 
