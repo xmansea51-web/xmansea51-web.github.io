@@ -641,12 +641,12 @@ const game = {
 window.onload = () => game.init();
 </script>
 
-<!-- ===== TikTok 登录配置 - Client Key已更新 ===== -->
+<!-- ===== TikTok 登录配置 - 已修复 redirect_uri ===== -->
 <script>
-// ★★★ 您的client key已更新 ★★★
-const TIKTOK_CLIENT_KEY = "awrjc36v2o7a2owa";   // 新Client Key
-// ✅ 改成 callback 路径，不用 index.html
-const REDIRECT_URI = "https://xmansea51-web.github.io/callback/";
+// ★★★ 您的client key ★★★
+const TIKTOK_CLIENT_KEY = "awrjc36v2o7a2owa";
+// ✅ 改为你在TikTok后台配置的Web地址
+const REDIRECT_URI = "https://xmansea51-web.github.io/index.html";
 
 // ===== 点击登录 =====
 function loginWithTikTok() {
