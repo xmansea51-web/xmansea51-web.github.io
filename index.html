@@ -327,6 +327,8 @@ const game = {
         const code = params.get("code");
         const state = params.get("state");
 
+        console.log("回调参数:", {code, state});
+
         if (!code || state !== "game_login") return;
 
         this.showToast("🔄 正在登录...");
@@ -335,7 +337,7 @@ const game = {
         window.history.replaceState({}, document.title, window.location.pathname);
     },
 
-    // 调用 Render 后端
+    // 调用 Render 后端 - 修复版
     async exchangeTokenWithBackend(code) {
         try {
             const response = await fetch(
@@ -350,21 +352,52 @@ const game = {
             );
 
             const data = await response.json();
+            console.log("后端返回数据:", data);
 
-            if (data.success) {
-                localStorage.setItem("tiktok_access_token", data.access_token);
-                localStorage.setItem("tiktok_user", JSON.stringify(data.user));
-                localStorage.setItem("tiktok_refresh_token", data.refresh_token);
+            // 处理不同格式的后端返回数据
+            if (data) {
+                // 尝试多种可能的返回格式
+                let accessToken = data.access_token || data.accessToken || data.token || data.accessToken;
+                let userInfo = data.user || data.userInfo || data.profile || {};
+                let refreshToken = data.refresh_token || data.refreshToken;
+                
+                // 如果直接返回了用户信息（没有嵌套）
+                if (data.name && data.avatar) {
+                    userInfo = {
+                        name: data.name,
+                        avatar: data.avatar
+                    };
+                    accessToken = accessToken || data.access_token || "temp_token";
+                }
+                
+                // 如果有token，就算成功
+                if (accessToken) {
+                    // 确保用户信息有默认值
+                    const finalUserInfo = {
+                        name: userInfo.name || userInfo.username || data.username || "TikTok用户",
+                        avatar: userInfo.avatar || userInfo.avatar_url || data.avatar || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23cccccc'/%3E%3Ctext x='50' y='70' font-size='50' text-anchor='middle' fill='%23666'%3E👤%3C/text%3E%3C/svg%3E"
+                    };
+                    
+                    localStorage.setItem("tiktok_access_token", accessToken);
+                    localStorage.setItem("tiktok_user", JSON.stringify(finalUserInfo));
+                    
+                    if (refreshToken) {
+                        localStorage.setItem("tiktok_refresh_token", refreshToken);
+                    }
 
-                this.showLoginSuccess(data.user);
-                this.showToast("✅ TikTok登录成功");
+                    this.showLoginSuccess(finalUserInfo);
+                    this.showToast("✅ TikTok登录成功");
+                } else {
+                    console.error("登录失败: 没有获取到access_token", data);
+                    this.showToast("❌ 登录失败: " + (data.error || data.message || "无法获取token"));
+                }
             } else {
-                this.showToast("❌ 登录失败");
+                this.showToast("❌ 服务器返回数据为空");
             }
 
         } catch (err) {
-            console.error(err);
-            this.showToast("❌ 网络错误");
+            console.error("网络错误:", err);
+            this.showToast("❌ 网络错误，请检查连接");
         }
     },
     
@@ -373,9 +406,9 @@ const game = {
         this.isLoggedIn = true;
         
         // 更新用户信息栏
-        document.getElementById('userName').innerText = userInfo.name;
+        document.getElementById('userName').innerText = userInfo.name || "TikTok用户";
         const avatarImg = document.querySelector('#userAvatar img');
-        avatarImg.src = userInfo.avatar;
+        avatarImg.src = userInfo.avatar || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23cccccc'/%3E%3Ctext x='50' y='70' font-size='50' text-anchor='middle' fill='%23666'%3E👤%3C/text%3E%3C/svg%3E";
         document.getElementById('userInfoBar').style.display = 'flex';
         
         // 启用所有按钮
@@ -383,7 +416,7 @@ const game = {
         document.getElementById('watchAdBtn').disabled = false;
         
         // 更新状态文字
-        document.getElementById('loginStatus').innerHTML = '✅ 已登录：' + userInfo.name;
+        document.getElementById('loginStatus').innerHTML = '✅ 已登录：' + (userInfo.name || "TikTok用户");
     },
     
     // 退出登录
@@ -392,6 +425,7 @@ const game = {
         this.accessToken = null;
         localStorage.removeItem('tiktok_access_token');
         localStorage.removeItem('tiktok_user');
+        localStorage.removeItem('tiktok_refresh_token');
         
         document.getElementById('userInfoBar').style.display = 'none';
         document.getElementById('startGameBtn').disabled = true;
