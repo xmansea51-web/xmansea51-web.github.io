@@ -199,7 +199,7 @@
             <h1 style="margin:0; font-size: 2.2rem;">拒绝加班！昭和职场大逃杀</h1>
         </div>
         
-        <!-- TikTok登录按钮 - 使用真实Client Key -->
+        <!-- TikTok登录按钮 -->
         <div class="btn-group" style="margin-bottom: 20px;">
             <button class="btn btn-tiktok" id="tiktokLoginBtn">🎵 Login with TikTok</button>
         </div>
@@ -211,7 +211,7 @@
         
         <div style="margin-top: 10px; color: #666; font-size: 0.9rem;" id="loginStatus">请先登录TikTok</div>
         
-        <!-- 隐私政策和服务条款链接（审核必须） -->
+        <!-- 隐私政策和服务条款链接 -->
         <div class="legal-links">
             <a href="#" onclick="game.showTerms()">Terms of Service</a> |
             <a href="#" onclick="game.showPrivacy()">Privacy Policy</a>
@@ -228,7 +228,7 @@
         </div>
     </div>
 
-    <!-- 广告模拟层 - 使用UI模拟，不用alert -->
+    <!-- 广告模拟层 -->
     <div id="adLayer">
         <div class="ad-text">📺 广告播放中</div>
         <div class="ad-timer" id="adTimer">3</div>
@@ -277,7 +277,6 @@ const game = {
     targetX: 0,
     isLoggedIn: false,
     accessToken: null,
-    openId: null,
 
     init() {
         canvas.width = canvas.parentElement.clientWidth;
@@ -303,7 +302,7 @@ const game = {
         // 检查本地存储的登录状态
         this.checkStoredLogin();
         
-        // 处理TikTok回调（真实code返回）
+        // 处理TikTok回调
         this.handleTikTokCallback();
         
         this.render();
@@ -315,23 +314,25 @@ const game = {
         const userInfo = localStorage.getItem('tiktok_user');
         
         if (token && userInfo) {
-            this.accessToken = token;
             try {
                 const user = JSON.parse(userInfo);
+                this.accessToken = token;
                 this.showLoginSuccess(user);
-            } catch (e) {}
+                console.log("从本地存储恢复登录状态:", user);
+            } catch (e) {
+                console.error("解析用户信息失败:", e);
+            }
         }
     },
     
-    // TikTok回调处理 - 调用真实后端
+    // TikTok回调处理
     handleTikTokCallback() {
         const params = new URLSearchParams(window.location.search);
         const code = params.get("code");
 
-        console.log("收到code:", code ? code.substring(0, 20) + "..." : "无");
-
         if (!code) return;
 
+        console.log("收到code:", code.substring(0, 20) + "...");
         this.showToast("🔄 正在登录...");
         this.exchangeTokenWithBackend(code);
 
@@ -339,7 +340,7 @@ const game = {
         window.history.replaceState({}, document.title, window.location.pathname);
     },
 
-    // 调用 Render 后端 - 生产版本，无测试代码
+    // 调用后端API
     async exchangeTokenWithBackend(code) {
         try {
             const response = await fetch(
@@ -360,7 +361,7 @@ const game = {
             const data = await response.json();
             console.log("后端返回数据:", data);
 
-            // 检查是否成功获取access_token
+            // 获取access_token
             const accessToken = data.access_token || data.accessToken;
             
             if (!accessToken) {
@@ -370,12 +371,13 @@ const game = {
             // 获取用户信息
             const userInfo = data.user || data.userInfo || {};
             
+            // 构建用户信息
             const finalUserInfo = {
-                name: userInfo.name || userInfo.username || "TikTok用户",
-                avatar: userInfo.avatar || userInfo.avatar_url || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23cccccc'/%3E%3Ctext x='50' y='70' font-size='50' text-anchor='middle' fill='%23666'%3E👤%3C/text%3E%3C/svg%3E"
+                name: userInfo.name || userInfo.username || userInfo.nickname || "TikTok用户",
+                avatar: userInfo.avatar || userInfo.avatar_url || userInfo.picture || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23cccccc'/%3E%3Ctext x='50' y='70' font-size='50' text-anchor='middle' fill='%23666'%3E👤%3C/text%3E%3C/svg%3E"
             };
             
-            // 保存登录信息
+            // 保存到localStorage
             localStorage.setItem("tiktok_access_token", accessToken);
             localStorage.setItem("tiktok_user", JSON.stringify(finalUserInfo));
             
@@ -383,24 +385,26 @@ const game = {
                 localStorage.setItem("tiktok_refresh_token", data.refresh_token || data.refreshToken);
             }
 
+            // 显示登录成功
             this.showLoginSuccess(finalUserInfo);
-            this.showToast("✅ TikTok登录成功");
+            this.showToast("✅ 登录成功！");
 
         } catch (err) {
             console.error("登录失败:", err);
             this.showToast("❌ 登录失败，请重新尝试");
-            
-            // 确保登录状态为false
             this.isLoggedIn = false;
         }
     },
     
     // 显示登录成功
     showLoginSuccess(userInfo) {
+        console.log("显示登录成功:", userInfo);
+        
         this.isLoggedIn = true;
+        this.accessToken = localStorage.getItem('tiktok_access_token');
         
         // 更新用户信息栏
-        document.getElementById('userName').innerText = userInfo.name || "TikTok用户";
+        document.getElementById('userName').innerText = userInfo.name;
         const avatarImg = document.querySelector('#userAvatar img');
         avatarImg.src = userInfo.avatar;
         document.getElementById('userInfoBar').style.display = 'flex';
@@ -410,7 +414,9 @@ const game = {
         document.getElementById('watchAdBtn').disabled = false;
         
         // 更新状态文字
-        document.getElementById('loginStatus').innerHTML = '✅ 已登录：' + (userInfo.name || "TikTok用户");
+        document.getElementById('loginStatus').innerHTML = '✅ 已登录：' + userInfo.name;
+        
+        console.log("登录状态已更新, isLoggedIn =", this.isLoggedIn);
     },
     
     // 退出登录
@@ -438,18 +444,20 @@ const game = {
         setTimeout(() => toast.remove(), 2000);
     },
 
-    // 显示服务条款（审核必须）
+    // 显示服务条款
     showTerms() {
         alert("TERMS OF SERVICE\n\nThis game uses TikTok Login for authentication. No personal data is stored on our servers. All data is handled according to TikTok's API policies. By using this game, you agree to these terms.");
     },
     
-    // 显示隐私政策（审核必须）
+    // 显示隐私政策
     showPrivacy() {
         alert("PRIVACY POLICY\n\nWe only access your TikTok profile information (name, avatar) through TikTok's official API. This information is stored locally on your device and is not shared with any third parties. We do not collect any other personal data.");
     },
 
     // 开始游戏
     start() {
+        console.log("尝试开始游戏, isLoggedIn =", this.isLoggedIn);
+        
         if (!this.isLoggedIn) {
             this.showToast('请先登录TikTok');
             return;
@@ -487,7 +495,7 @@ const game = {
         }, 1000);
     },
 
-    // 看广告逻辑 - 使用UI模拟，不用alert
+    // 看广告逻辑
     watchAd() {
         if (!this.isLoggedIn) {
             this.showToast('请先登录TikTok');
@@ -508,11 +516,10 @@ const game = {
                 clearInterval(itv);
                 adLayer.style.display = 'none';
                 
-                // 广告观看完毕，发放奖励
                 this.showToast("🎁 获得奖励");
                 
                 if (!this.active) {
-                    this.start();  // 复活
+                    this.start();
                 } else {
                     this.score += 500;
                     document.getElementById('scoreVal').innerText = this.score;
@@ -663,14 +670,11 @@ const game = {
 window.onload = () => game.init();
 </script>
 
-<!-- ===== TikTok 登录配置 - 生产版本 ===== -->
+<!-- ===== TikTok 登录配置 ===== -->
 <script>
-// ★★★ 您的client key ★★★
 const TIKTOK_CLIENT_KEY = "awrjc36v2o7a2owa";
-// ✅ 改为你在TikTok后台配置的Web地址
 const REDIRECT_URI = "https://xmansea51-web.github.io/index.html";
 
-// ===== 点击登录 - 生产版本 =====
 function loginWithTikTok() {
     const authUrl =
         "https://www.tiktok.com/v2/auth/authorize/?" +
@@ -679,9 +683,6 @@ function loginWithTikTok() {
         "&response_type=code" +
         "&redirect_uri=" + encodeURIComponent(REDIRECT_URI);
 
-    console.log("跳转到:", authUrl);
-    
-    // 使用完整页面重定向
     window.location.href = authUrl;
 }
 </script>
